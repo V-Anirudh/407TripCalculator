@@ -1,52 +1,94 @@
 package tollcalculation;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.util.HashMap;
 import java.util.Scanner;
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONString;
 import com.google.gson.Gson; 
 import com.google.gson.GsonBuilder; 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-
 public class TollCalculator {
-	public static void main(String[] args) {
+    private static final double TOLL_RATE = 0.25; // toll rate of $0.25/km
+    
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Enter the starting interchange: ");
+        String start = scanner.nextLine();
+        System.out.print("Enter the destination interchange: ");
+        String end = scanner.nextLine();
+        scanner.close();
+        costOfTrip(start, end);
+        // System.out.println("Trip 1: QEW to Highway 400");
+        // costOfTrip("QEW", "Highway 400");
+        
+        // System.out.println("\nTrip 2: Salem Road to QEW");
+        // costOfTrip("Salem Road", "QEW");
+        
+        // System.out.println("\nTrip 3: QEW to Salem Road");
+        // costOfTrip("QEW", "Salem Road");
+    }
+    
+    public static void costOfTrip(String start, String end) {
+        System.out.print(start+' '+end);
+        double distance = 0.0;
+        double cost = 0.0;
+        
         try {
-        	 FileReader reader = new FileReader("src/main/resources/interchanges.json");
+            // Load the interchanges.json file
+            FileReader reader = new FileReader("src/main/resources/interchanges.json");
         	 Gson gson = new Gson();
              JsonObject jsonObject = gson.fromJson(reader, JsonObject.class);
              System.out.println(jsonObject.toString());
-           //JSONObject jsonObject = new JSONObject(new FileReader("src/main/resources/interchanges.json"));
-            HashMap<Integer, Interchange> interchanges = new HashMap<Integer, Interchange>();
-            System.out.println(jsonObject.get("locations").toString());
-            JsonObject locationsObject = (JsonObject) jsonObject.get("locations");
-            System.out.println(locationsObject.get("1"));
-            
-			/*
-			 * for (String key : jsonObject.get("locations").keySet()) { JSONObject
-			 * interchangeJson = jsonObject.get("locations").getJSONObject(key); int id =
-			 * Integer.parseInt(key); String name = interchangeJson.getString("name");
-			 * double lat = interchangeJson.getDouble("lat"); double lng =
-			 * interchangeJson.getDouble("lng"); Interchange interchange = new
-			 * Interchange(id, name, lat, lng); interchanges.put(id, interchange); for (int
-			 * i = 0; i < interchangeJson.getJSONArray("routes").length(); i++) { JSONObject
-			 * routeJson = interchangeJson.getJSONArray("routes").getJSONObject(i); int toId
-			 * = routeJson.getInt("toId"); double distance =
-			 * routeJson.getDouble("distance"); interchange.addRoute(toId, distance); } }
-			 */
+
+            // File file = new File("D:/407ETR/407TripCalculator/src/main/resources/interchanges.json");
+            // System.out.println("the json data"+file);
             Scanner scanner = new Scanner(System.in);
-            System.out.print("Enter the starting interchange id: ");
-            int fromId = scanner.nextInt();
-            System.out.print("Enter the ending interchange id: ");
-            int toId = scanner.nextInt();
-            double distance = interchanges.get(fromId).getDistance(toId);
-            double toll = distance * 0.25;
-            System.out.printf("The toll for driving from interchange %d to interchange %d is $%.2f\n", fromId, toId, toll);
-        } catch (Exception e) {
+            String jsonStr = scanner.useDelimiter("\\Z").next();
+            scanner.close();
+            
+            // Parse the JSON string
+            JSONObject jsonObj = new JSONObject(jsonStr);
+            
+            // Find the start and end interchanges
+            JSONObject startInterchange = null;
+            JSONObject endInterchange = null;
+            
+            for (Object key : jsonObj.getJSONObject("locations").keySet()) {
+                JSONObject interchange = jsonObj.getJSONObject("locations").getJSONObject((String) key);
+                
+                if (interchange.getString("name").equalsIgnoreCase(start)) {
+                    startInterchange = interchange;
+                }
+                
+                if (interchange.getString("name").equalsIgnoreCase(end)) {
+                    endInterchange = interchange;
+                }
+                
+                if (startInterchange != null && endInterchange != null) {
+                    break;
+                }
+            }
+            
+            // Calculate the distance between the start and end interchanges
+            for (int i = 0; i < startInterchange.getJSONArray("routes").length(); i++) {
+                JSONObject route = startInterchange.getJSONArray("routes").getJSONObject(i);
+                
+                if (route.getInt("toId") == endInterchange.getInt("id")) {
+                    distance = route.getDouble("distance");
+                    break;
+                }
+            }
+            
+            // Calculate the cost of the trip
+            cost = distance * TOLL_RATE;
+            
+            // Print the results
+            System.out.printf("Distance: %.3f km\n", distance);
+            System.out.printf("Cost: $%.2f\n", cost);
+        } catch (FileNotFoundException e) {
+            System.out.println("interchanges.json file not found!");
             e.printStackTrace();
         }
     }
-	
 }
